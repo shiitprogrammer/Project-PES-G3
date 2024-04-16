@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Galatic Cheese Master</title>
     <style>
-        
         body,
         h1,
         h2,
@@ -20,7 +19,7 @@
             padding: 0;
         }
 
-        
+
         body {
             display: flex;
             flex-direction: column;
@@ -31,7 +30,7 @@
             padding: 20px;
         }
 
-        
+
         .main-container {
             flex-grow: 1;
             display: flex;
@@ -41,7 +40,7 @@
             gap: 10px;
         }
 
-       
+
         button {
             background-color: #007BFF;
             color: white;
@@ -58,64 +57,113 @@
             background-color: #0056b3;
         }
 
+        .control-panel {
+            display: flex;
+            align-items: center;
+        }
+
         .ammo {
-            width: 100%;
+            width: 20px;
+            height: 200px;
             background-color: #d41010;
             border-radius: 20px;
             overflow: hidden;
-            margin-bottom: 20px;
+            margin-left: 20px;
+        }
+
+        #ammo-bar {
+            width: 100%;
+            height: 100%;
+            /* Set initial height to 100% */
+            background-color: #4CAF50;
+            transition: height 0.3s ease;
         }
 
         .ammo div {
-            height: 20px;
             width: 100%;
+            height: 100%;
             background-color: #4CAF50;
-            transition: width 0.3s ease;
+            transition: height 0.3s ease;
+        }
+
+        .slider-container {
+            width: 200px;
+            margin: 20px;
+        }
+
+        .motor-slider {
+            width: 100%;
+        }
+
+        img {
+            border: 2px solid #333;
+            width: 80%;
+            margin: 20px auto;
         }
     </style>
 </head>
 
 <body>
     <div class="main-container">
-        <svg width="200" height="100">
-            <path id="half-circle" d="M 50 100 A 50 50 0 0 1 150 100" stroke="black" fill="transparent" />
-            <line id="indicator" x1="100" y1="100" x2="100" y2="50" stroke="red" />
-        </svg>
-        <div class="controls">
-            <button onclick="sendCommand('draai_links'); updateRotatie(-10);">Links roteren</button>
-            <button onclick="sendCommand('draai_rechts')">Rechts roteren</button>
-            <button onclick="sendCommand('shiet')">Shieten</button>
-            <button onclick="sendCommand('shiet'); updateAmmo(10);">Shieten</button>
+        <h1>Galactic Cheese Master</h1>
+        <img src="{{ url_for('video_feed') }}" alt="Video Feed">
+        <div class="control-panel">
+            <div class="controls">
+                <button ontouchstart="startRotatie(-10, 'draai_links')" ontouchend="stopRotatie()"
+                    touchcancel="stopRotatie()" onmousedown="startRotatie(-10, 'draai_links')"
+                    onmouseup="stopRotatie()">Links roteren</button>
+                <button ontouchstart="startRotatie(10, 'draai_rechts')" ontouchend="stopRotatie()"
+                    touchcancel="stopRotatie()" onmousedown="startRotatie(10, 'draai_rechts')"
+                    onmouseup="stopRotatie()">Rechts roteren</button>
+                <button onclick="sendCommand('herlaad')">Herladen</button>
+                <button onclick="sendCommand('schiet'); updateAmmo(10);">Shieten</button>
             </div>
             <div id="ammo" class="ammo">
                 <div id="ammo-bar"></div>
             </div>
+        </div>
+        <div class="slider-container">
+            <input type="range" min="0" max="100" value="50" class="motor-slider" id="motorPower">
+            <label id="motorPowerLabel" for="motorPower">Motor Power: 50</label>
+        </div>
     </div>
 
     <script>
         let ammo = 100;
-        let graden = 0;
+        let totGraden = 0;
+        let rotationInterval;
+
         updateAmmo(0);
 
-        function sendCommand(command) {
-            fetch(`/command/${command}`, { method: 'POST' })
+        function sendCommand(command, value) {
+            const url = value !== undefined ? `/command/${command}/${value}` : `/command/${command}`;
+            fetch(url, { method: 'POST' })
                 .then(response => response.text())
-                .then(data => {
-                    const terminal = document.getElementById('terminal');
-                    terminal.textContent += `\n${data}`;
-                    terminal.scrollTop = terminal.scrollHeight;
-                })
                 .catch(error => console.error('Error:', error));
         }
+
+        document.getElementById('motorPower').addEventListener('input', function (e) {
+            document.getElementById('motorPowerLabel').innerText = 'Motor Power: ' + e.target.value;
+            sendCommand('updateMotorPower', e.target.value);
+        });
         function updateAmmo(amount) {
             ammo -= amount;
             const ammoBar = document.getElementById('ammo-bar');
-            ammoBar.style.width = `${ammo}%`;
+            ammoBar.style.height = `${ammo}%`;
         }
 
-        function updateRotatie(graden) {
-            const indicator = document.getElementById('indicator');
-            indicator.setAttribute('transform', `rotate(${graden}, 100, 100)`);
+        function startRotatie(graden, command) {
+            rotationInterval = setInterval(() => {
+                sendCommand(command);
+                totGraden += graden;
+            }, 100);
+        }
+        document.getElementById('motorPower').addEventListener('input', function (e) {
+            document.getElementById('motorPowerLabel').innerText = 'Motor Power: ' + e.target.value;
+        });
+
+        function stopRotatie() {
+            clearInterval(rotationInterval);
         }
     </script>
 </body>
