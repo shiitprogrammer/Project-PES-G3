@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="nl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Galatic Cheese Master</title>
+    <style>
+        
+        body,
+        h1,
+        h2,
+        h3,
+        p,
+        figure,
+        blockquote,
+        dl,
+        dd {
+            margin: 0;
+            padding: 0;
+        }
+
+        
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            color: #333;
+            padding: 20px;
+        }
+
+        
+        .main-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+       
+        button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .ammo {
+            width: 100%;
+            background-color: #d41010;
+            border-radius: 20px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .ammo div {
+            height: 20px;
+            width: 100%;
+            background-color: #4CAF50;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-container">
+        <svg width="200" height="100">
+            <path id="half-circle" d="M 50 100 A 50 50 0 0 1 150 100" stroke="black" fill="transparent" />
+            <line id="indicator" x1="100" y1="100" x2="100" y2="50" stroke="red" />
+        </svg>
+        <div class="controls">
+            <button onclick="sendCommand('draai_links'); updateRotatie(-10);">Links roteren</button>
+            <button onclick="sendCommand('draai_rechts')">Rechts roteren</button>
+            <button onclick="sendCommand('shiet')">Shieten</button>
+            <button onclick="sendCommand('shiet'); updateAmmo(10);">Shieten</button>
+            </div>
+            <div id="ammo" class="ammo">
+                <div id="ammo-bar"></div>
+            </div>
+    </div>
+
+    <script>
+        let ammo = 100;
+        let graden = 0;
+        updateAmmo(0);
+
+        function sendCommand(command) {
+            fetch(`/command/${command}`, { method: 'POST' })
+                .then(response => response.text())
+                .then(data => {
+                    const terminal = document.getElementById('terminal');
+                    terminal.textContent += `\n${data}`;
+                    terminal.scrollTop = terminal.scrollHeight;
+                })
+                .catch(error => console.error('Error:', error));
+        }
+        function updateAmmo(amount) {
+            ammo -= amount;
+            const ammoBar = document.getElementById('ammo-bar');
+            ammoBar.style.width = `${ammo}%`;
+        }
+
+        function updateRotatie(graden) {
+            const indicator = document.getElementById('indicator');
+            indicator.setAttribute('transform', `rotate(${graden}, 100, 100)`);
+        }
+    </script>
+</body>
+
+</html>
