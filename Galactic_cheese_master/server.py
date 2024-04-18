@@ -49,16 +49,47 @@ def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/analyze')
-def analyze():
-    success, frame = camera.read()
+def analyze_with_angles(image_path=None):
+    if image_path is None:
+        success, frame = camera.read()
+    else:
+        frame = cv2.imread(image_path)
+        success = frame is not None
     if success:
+        if frame.shape[0] > frame.shape[1]:
+            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+            
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        edges = cv2.Canny(gray, 50, 150)
-        lines = cv2.HoughLinesP(edges, 1, math.pi / 180, 100, minLineLength=100, maxLineGap=10)
-        if lines is not None:
-            for line in lines:
-                x1, y1, x2, y2 = line[0]
-                cv2.line(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        ret, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
+
+        contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        
+        centroids = []
+
+        for contour in contours:
+            area = cv2.contourArea(contour)
+            if area > 100:  
+                M = cv2.moments(contour)
+                if M["m00"] != 0:
+                    cX = int(M["m10"] / M["m00"])
+                    cY = int(M["m01"] / M["m00"])
+                    centroids.append((cX, cY))
+
+                    
+                    cv2.drawContours(frame, [contour], -1, (0, 255, 0), 2)
+                    cv2.circle(frame, (cX, cY), 7, (255, 255, 255), -1)
+
+        frame_center_x = frame.shape[1] // 2
+        field_of_view = 60  
+        angles_to_centroids = []
+
+        for (cX, cY) in centroids:
+            angle = (cX - frame_center_x) / frame_center_x * (field_of_view / 2)
+            angles_to_centroids.append(angle)
+            
+            cv2.putText(frame, f"{angle:.2f}", (cX - 10, cY - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
         static_path = os.path.join(app.root_path, 'static')
         if not os.path.exists(static_path):
@@ -69,9 +100,12 @@ def analyze():
 
         image_url = url_for('static', filename='processed_image.jpg')
         return jsonify({'image_url': image_url})
+
     else:
         return jsonify({'error': 'Unable to capture image'}), 500
 
+
+analyze_with_angles('video/trou-madame02.png')
 
 
 
@@ -99,7 +133,8 @@ def handle_command(cmd, value=None):
         return 'Motor power updated'
     else:
         return 'Geen commando', 400
-    
+
+
     
 if __name__ == '__main__':
     app.run()
