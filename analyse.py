@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-
+#pip istall opencv-contrib-python voor TrackerCRST 
 
 
 
