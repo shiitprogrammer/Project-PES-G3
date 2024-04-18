@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="nl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Galactic Cheese Master - Controlekamer</title>
+    <style>
+        body,
+        h1,
+        p,
+        div {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #1e1e2f;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .control-room {
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+            background: linear-gradient(145deg, #2b2b44, #1b1b32);
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .target-settings {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .setting {
+            padding: 10px;
+            background: #24243e;
+            border-radius: 10px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        h2 {
+            font-size: 16px;
+        }
+
+        .command-log {
+            height: 200px;
+            overflow-y: auto;
+            background: #1d1d30;
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 14px;
+            color: #7bd235;
+        }
+
+        input[type="range"],
+        input[type="number"],
+        button {
+            width: 100%;
+            padding: 5px;
+            margin-top: 5px;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #4cd137;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #44bd32;
+        }
+
+        .snapshot-div {
+            width: 100%;
+            height: 300px;
+            background-size: cover;
+            border-radius: 10px;
+        }
+
+        .snapshot-div img {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+        }
+
+        .navigation button {
+            background-color: #4cd137;
+            /* Green background */
+            color: white;
+            /* White text */
+            border: none;
+            padding: 10px 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .navigation button:hover {
+            background-color: #44bd32;
+            /* Darker green on hover */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="control-room">
+        <h1>Controlekamer</h1>
+        <button id="snapshot-button">Take Snapshot</button>
+        <div class="snapshot-div">
+            <img id="snapshot-image" src="">
+        </div>
+        <div class="target-settings" id="target-settings">
+        </div>
+        <div class="command-log" id="command-log">
+        </div>
+        <div class="navigation">
+            <a href="/" style="text-decoration: none;">
+                <button>Home</button>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        const targetSettingsContainer = document.getElementById('target-settings');
+
+        for (let i = 0; i < 9; i++) {
+            const settingDiv = document.createElement('div');
+            settingDiv.className = 'setting';
+            settingDiv.innerHTML = `
+                <h2>Doel ${i + 1}</h2>
+                <label for="rotation-setting-${i}">Hoek:</label>
+                <input type="number" id="rotation-setting-${i}" min="-180" max="180" value="0">
+                <label for="motor-speed-${i}">Snelheid:</label>
+                <input type="range" id="motor-speed-${i}" min="0" max="100" value="50">
+                <button onclick="sendCommand('setTarget', ${i + 1}, document.getElementById('rotation-setting-${i}').value, document.getElementById('motor-speed-${i}').value)">Instellen</button>
+            `;
+            targetSettingsContainer.appendChild(settingDiv);
+        }
+
+        function sendCommand(command, target, rotation, speed) {
+            const url = `/command/${command}/${target}/${rotation}/${speed}`;
+            fetch(url, { method: 'POST' })
+                .then(response => response.text())
+                .then(data => {
+                    const log = document.getElementById('command-log');
+                    log.innerHTML += `<div>Doel ${target}: Hoek - ${rotation}°, Snelheid - ${speed}%<br>${data}</div>`;
+                    log.scrollTop = log.scrollHeight;
+                })
+                .catch(error => console.error('Error:', error));
+        }
+        document.getElementById('snapshot-button').addEventListener('click', function () {
+            fetch('/analyze')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.image_url) {
+                        document.getElementById('snapshot-image').src = data.image_url;
+                    } else {
+                        console.error('Error:', data.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+
+</html>
