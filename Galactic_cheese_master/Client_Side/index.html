@@ -32,7 +32,7 @@
 
         .main-container {
             width: 100%;
-            max-width: 600px;
+            max-width: 1000px;
             background: linear-gradient(145deg, #24263b, #141526);
             border-radius: 20px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
@@ -56,13 +56,15 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
         }
 
-        .controls {
+        .controls,
+        .settings {
             display: flex;
             justify-content: space-around;
             width: 100%;
         }
 
-        button {
+        button,
+        .toggle {
             background-color: #4cd137;
             border: none;
             padding: 10px 15px;
@@ -73,7 +75,8 @@
             transition: background-color 0.3s, transform 0.1s;
         }
 
-        button:hover {
+        button:hover,
+        .toggle:hover {
             background-color: #44bd32;
             transform: scale(1.1);
         }
@@ -99,48 +102,82 @@
             transition: height 0.3s ease;
         }
 
-        .slider-container {
-            width: 100%;
-        }   
-
-        .motor-slider,
-        .motor-slider:focus {
+        .slider {
             -webkit-appearance: none;
             width: 100%;
-            height: 8px;
-            border-radius: 5px;
-            background: #dfe6e9;
+            height: 15px;
+            background: #ddd;
             outline: none;
             opacity: 0.7;
             transition: opacity .2s;
         }
 
-        .motor-slider::-webkit-slider-thumb {
+        .slider:hover {
+            opacity: 1;
+        }
+
+        .slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #2f3640;
+            width: 25px;
+            height: 25px;
+            background: #4cd137;
             cursor: pointer;
         }
 
-        .motor-slider::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #2f3640;
+        .slider::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            background: #4cd137;
             cursor: pointer;
         }
+
+        .console-log {
+            width: 100%;
+            height: 150px;
+            background-color: #333;
+            color: lime;
+            font-family: monospace;
+            overflow-y: scroll;
+            padding: 10px;
+            box-sizing: border-box;
+            margin-top: 20px;
+        }
+
+        .target-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+
+        .target {
+            background-color: #f39c12;
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin: 10px;
+            cursor: pointer;
+            transition: transform 0.3s, background-color 0.5s;
+        }
+
+        .target.hit {
+            background-color: #e74c3c;
+            transform: scale(1.1);
+        }
+
+        .scoreboard {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            color: #fff;
+            font-size: 20px;
+        }
+
 
         @media (max-width: 768px) {
-
-            /* Adjustments for mobile and smaller devices */
             .ammo {
                 width: 100%;
-                /* Full width under the video */
                 height: 20px;
-                /* Appropriate height for horizontal bar */
                 position: static;
                 transform: none;
                 margin-top: 20px;
@@ -148,7 +185,6 @@
 
             #ammo-bar {
                 height: 100%;
-                /* Full height of the container */
             }
 
             .main-container {
@@ -159,25 +195,7 @@
                 max-width: 100%;
                 max-height: 50vh;
             }
-        }
 
-        .navigation button {
-            background-color: #4cd137;
-            /* Green background */
-            color: white;
-            /* White text */
-            border: none;
-            padding: 10px 20px;
-            margin-top: 20px;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .navigation button:hover {
-            background-color: #44bd32;
-            /* Darker green on hover */
         }
     </style>
 </head>
@@ -185,7 +203,7 @@
 <body>
     <div class="main-container">
         <h1>Galactic Cheese Master</h1>
-        <img src="{{ url_for('video_feed') }}" alt="Video Feed">
+        <img src="http://192.168.0.142:8080/video" alt="Video Feed">
         <div class="controls">
             <button ontouchstart="startRotatie(-10, 'draai_links')" ontouchend="stopRotatie()"
                 touchcancel="stopRotatie()" onmousedown="startRotatie(-10, 'draai_links')"
@@ -199,33 +217,50 @@
         <div class="ammo">
             <div id="ammo-bar"></div>
         </div>
-        <div class="slider-container">
-            <input type="range" min="0" max="100" value="50" class="motor-slider" id="motorPower">
-            <label for="motorPower" id="motorPowerLabel">Motor Power: 50</label>
+        <div class="settings">
+            <div>
+                <label for="motor-speed">Motor Speed:</label>
+                <input type="range" id="motor-speed" class="slider" min="0" max="100" value="50"
+                    onchange="sendCommand('dc_motor_snelheid', speed)">
+            </div>
+            <div>
+                <label for="laser-toggle">Laser:</label>
+                <button class="toggle" id="laser-toggle" onclick="toggleLaser(this)">OFF</button>
+            </div>
         </div>
-        <div class="navigation">
-            <a href="/instellingen" style="text-decoration: none;">
-                <button>setting kamer</button>
-            </a>
+        <h1>Sensor Data</h1>
+        <div id="hoekdiv">graden: wacht even</div>
+        <div class="scoreboard">
+            <h2>Score: <span id="score">0</span></h2>
         </div>
-    </div>  
+        <div class="target-container">
+            <div id="target-1" class="target" onclick="hitTarget(1, 1)">1</div>
+            <div id="target-2" class="target" onclick="hitTarget(2, 2)">2</div>
+            <div id="target-3" class="target" onclick="hitTarget(3, 3)">3</div>
+            <div id="target-4" class="target" onclick="hitTarget(4, 4)">4</div>
+            <div id="target-5" class="target" onclick="hitTarget(5, 5)">5</div>
+            <div id="target-6" class="target" onclick="hitTarget(6, 6)">6</div>
+            <div id="target-7" class="target" onclick="hitTarget(7, 7)">7</div>
+            <div id="target-8" class="target" onclick="hitTarget(8, 8)">8</div>
+            <div id="target-9" class="target" onclick="hitTarget(9, 9)">9</div>
+        </div>
+        <div class="console-log" id="console-log"></div>
 
+    </div>
     <script>
         let ammo = 100;
-
-        updateAmmo(0); // Initialize ammo display
+        let laserStatus = false;
+        let score = 0;
+        let targetsHit = new Set(); 
+        let rotationInterval;
 
         function sendCommand(command, value) {
             const url = value !== undefined ? `/command/${command}/${value}` : `/command/${command}`;
             fetch(url, { method: 'POST' })
                 .then(response => response.text())
+                .then(text => console.log("Command status: " + text))
                 .catch(error => console.error('Error:', error));
         }
-
-        document.getElementById('motorPower').addEventListener('input', function (e) {
-            document.getElementById('motorPowerLabel').innerText = 'Motor Power: ' + e.target.value;
-            sendCommand('updateMotorPower', e.target.value);
-        });
 
         function updateAmmo(amount) {
             ammo -= amount;
@@ -239,13 +274,72 @@
 
         function startRotatie(graden, command) {
             rotationInterval = setInterval(() => {
-                sendCommand(command);
+                sendCommand(graden, command);
             }, 100);
         }
 
         function stopRotatie() {
             clearInterval(rotationInterval);
         }
+
+        function toggleLaser(element) {
+            laserStatus = !laserStatus;
+            element.textContent = laserStatus ? 'ON' : 'OFF';
+            sendCommand('laser_toggle', laserStatus ? 'on' : 'off');
+        }
+
+
+        function startGame() {
+            for (let i = 1; i <= 9; i++) {
+                let target = document.getElementById(`target-${i}`);
+                target.onclick = () => hitTarget(i, i);
+            }
+        }
+        function hitTarget(id, points) {
+            if (!targetsHit.has(id)) {
+                targetsHit.add(id);
+                score += points;
+                document.getElementById(`score`).innerText = score;
+                document.getElementById(`target-${id}`).style.opacity = "0.4"; // Indicate target is hit
+                document.getElementById(`target-${id}`).onclick = null; // Remove click functionality after hit
+            }
+        }
+        function updateScore(points) {
+            score += points;
+            document.getElementById('score').innerText = score;
+        }
+
+       document.addEventListener("DOMContentLoaded", function () {
+    const consoleElement = document.getElementById('console-log');
+    
+    var oldLog = console.log;
+    console.log = function (message) {
+        oldLog.apply(console, arguments); 
+        if (consoleElement) {
+            consoleElement.innerHTML += message + '<br>';
+            consoleElement.scrollTop = consoleElement.scrollHeight; // Scroll to the bottom
+        }
+    };
+
+    startGame(); 
+    updateAmmo(0); 
+    fetchData();
+});
+
+function fetchData() {
+    fetch('/rotation')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Error fetching data:', data.details);
+            } else {
+                document.getElementById('hoekdiv').innerText = 'hoek: ' + data.hoek.toFixed(2) + ' degrees';
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    setTimeout(fetchData, 1000);  // Recursive call every second
+}
+
     </script>
 </body>
 
